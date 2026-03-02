@@ -304,14 +304,27 @@ public struct NativeVMService: MiniDockService, @unchecked Sendable {
     }
     
     public func getVMStatus(vmPath: String) async throws -> (status: String, vncPort: Int?, ipAddress: String?, macAddress: String?, cpuUsage: String?, memoryUsage: String?, qgaVerified: Bool?, configChanged: Bool?, configDifferences: [String]?, vncBindAddress: String?) {
-        let psCommand = "ps -axww -o pcpu,pmem,args | grep qemu | grep '\(vmPath)' | grep -v grep"
-        let psResult = try await Shell.run(psCommand)
+        // Safe Process-based ps — no shell injection risk
+        let psProcess = Process()
+        psProcess.executableURL = URL(fileURLWithPath: "/bin/ps")
+        psProcess.arguments = ["-axww", "-o", "pcpu,pmem,args"]
+        let psPipe = Pipe()
+        psProcess.standardOutput = psPipe
+        psProcess.standardError = Pipe()
+        try psProcess.run()
+        let psData = psPipe.fileHandleForReading.readDataToEndOfFile()
+        psProcess.waitUntilExit()
+        try? psPipe.fileHandleForReading.close()
+        let psAllOutput = String(data: psData, encoding: .utf8) ?? ""
+        // Filter in Swift — vmPath used as plain string, no shell escaping needed
+        let matchingLine = psAllOutput.components(separatedBy: .newlines)
+            .first { $0.contains("qemu") && $0.contains(vmPath) && !$0.contains("grep") } ?? ""
         
-        if psResult.output.isEmpty {
+        if matchingLine.isEmpty {
             return ("stopped", nil, nil, nil, nil, nil, false, nil, nil, nil)
         }
         
-        let parts = psResult.output.trimmingCharacters(in: .whitespaces).components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let parts = matchingLine.trimmingCharacters(in: .whitespaces).components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         var cpuUsage: String? = nil
         var memoryUsage: String? = nil
         
@@ -324,14 +337,14 @@ public struct NativeVMService: MiniDockService, @unchecked Sendable {
         var vncPort: Int? = nil
         var vncBindAddress: String? = nil
         
-        if let range = psResult.output.range(of: "-vnc 127.0.0.1:(\\d+)", options: .regularExpression) {
-            let match = String(psResult.output[range])
+        if let range = matchingLine.range(of: "-vnc 127.0.0.1:(\\d+)", options: .regularExpression) {
+            let match = String(matchingLine[range])
             if let portStr = match.components(separatedBy: ":").last, let portOffset = Int(portStr) {
                 vncPort = 5900 + portOffset
                 vncBindAddress = "127.0.0.1"
             }
-        } else if let range = psResult.output.range(of: "-vnc 0.0.0.0:(\\d+)", options: .regularExpression) {
-            let match = String(psResult.output[range])
+        } else if let range = matchingLine.range(of: "-vnc 0.0.0.0:(\\d+)", options: .regularExpression) {
+            let match = String(matchingLine[range])
             if let portStr = match.components(separatedBy: ":").last, let portOffset = Int(portStr) {
                 vncPort = 5900 + portOffset
                 vncBindAddress = "0.0.0.0"
@@ -410,18 +423,22 @@ public struct NativeVMService: MiniDockService, @unchecked Sendable {
             throw Abort(.internalServerError)
         }
 
-        // Python bridge for QMP handshake and command execution
-        let escapedJson = jsonStr.replacingOccurrences(of: "'", with: "\\'")
+        // Python bridge for QMP — write script to temp file to avoid shell injection.
+        // qmpSocket and jsonStr are passed as argv, never interpolated into a shell command.
+        let tmpScript = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("qmp_\(UUID().uuidString).py")
         let pyScript = """
 import socket, json, sys
+qmp_socket = sys.argv[1]
+json_payload = sys.argv[2]
 try:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.settimeout(1.5)
-    s.connect("\(qmpSocket)")
-    s.recv(1024) # Greeting
+    s.connect(qmp_socket)
+    s.recv(1024)  # Greeting
     s.send(b'{"execute":"qmp_capabilities"}\\n')
-    s.recv(1024) # Ack
-    s.send('\(escapedJson)\\n'.encode())
+    s.recv(1024)  # Ack
+    s.send(json_payload.encode() + b'\\n')
     res = b""
     while True:
         chunk = s.recv(4096)
@@ -432,10 +449,29 @@ try:
 except Exception as e:
     print(json.dumps({"error": str(e)}))
 """
-        let qmpResult = try await Shell.run("python3 -c '\(pyScript)'")
-        guard let data = qmpResult.output.data(using: .utf8),
+        do {
+            try pyScript.write(to: tmpScript, atomically: true, encoding: .utf8)
+        } catch {
+            throw Abort(.internalServerError, reason: "Failed to write QMP helper script")
+        }
+        defer { try? FileManager.default.removeItem(at: tmpScript) }
+
+        let pyProcess = Process()
+        pyProcess.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        // Arguments are passed directly — no shell, no injection risk
+        pyProcess.arguments = [tmpScript.path, qmpSocket, jsonStr]
+        let pyPipe = Pipe()
+        pyProcess.standardOutput = pyPipe
+        pyProcess.standardError = pyPipe
+        try pyProcess.run()
+        let pyData = pyPipe.fileHandleForReading.readDataToEndOfFile()
+        pyProcess.waitUntilExit()
+        try? pyPipe.fileHandleForReading.close()
+        let qmpOutput = String(data: pyData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard let data = qmpOutput.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return ["error": "Failed to parse QMP response", "output": qmpResult.output]
+            return ["error": "Failed to parse QMP response", "output": qmpOutput]
         }
         return json
     }
