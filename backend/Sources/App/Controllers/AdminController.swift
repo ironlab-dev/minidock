@@ -5,7 +5,7 @@ struct AdminController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         // All routes here require Admin role
         let admin = routes.grouped("admin")
-            .grouped(User.jwtAuthenticator(), User.guardMiddleware())
+            .grouped(CookieAuthMiddleware(), User.jwtAuthenticator(), User.guardMiddleware())
             .grouped(AdminMiddleware())
             
         admin.get("users", use: listUsers)

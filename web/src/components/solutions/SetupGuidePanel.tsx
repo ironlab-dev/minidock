@@ -34,7 +34,7 @@ export default function SetupGuidePanel({ solutionId, steps }: SetupGuidePanelPr
         try {
             localStorage.setItem(
                 `${STORAGE_KEY_PREFIX}${solutionId}`,
-                JSON.stringify([...newSet])
+                JSON.stringify(Array.from(newSet))
             );
         } catch { /* ignore */ }
     }, [solutionId]);

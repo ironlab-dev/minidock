@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DEMO_MODE } from "@/demo/demoConfig";
+import { isClientAuthenticated } from '@/api/client';
 
 const getWsUrl = () => {
     // 1. Always prioritize environment variable if available
@@ -101,17 +102,15 @@ function connect() {
         // connectionStartTime = Date.now();
     }
 
-    // Skip connection if no auth token available (backend will reject unauthenticated WebSocket)
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('minidock_token') : null;
-    if (!token) {
+    // Skip connection if the user is not authenticated (no in-memory session token).
+    // AuthContext calls reconnectWebSocket() after login to initiate the first connection.
+    if (!isClientAuthenticated()) {
         return;
     }
 
-    // Append JWT token as query parameter for WebSocket authentication
-    let wsUrl = WS_URL;
-    const separator = wsUrl.includes('?') ? '&' : '?';
-    wsUrl = `${wsUrl}${separator}token=${encodeURIComponent(token)}`;
-    socket = new WebSocket(wsUrl);
+    // Browser automatically sends the httpOnly session cookie with same-origin WebSocket connections.
+    // No token in URL needed — keeping tokens out of URLs prevents exposure in server logs.
+    socket = new WebSocket(WS_URL!);
     currentStatus = "connecting";
     notify();
 

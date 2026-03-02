@@ -1014,6 +1014,19 @@ public struct VMStorageService: MiniDockService, @unchecked Sendable {
         }
     }
     
+    /// Validates a disk name to prevent path traversal and other injection attacks.
+    private func validateDiskName(_ name: String) throws {
+        guard !name.isEmpty else {
+            throw Abort(.badRequest, reason: "Disk name must not be empty")
+        }
+        guard name.count <= 255 else {
+            throw Abort(.badRequest, reason: "Disk name must not exceed 255 characters")
+        }
+        guard !name.contains("/") && !name.contains("..") else {
+            throw Abort(.badRequest, reason: "Disk name contains invalid characters")
+        }
+    }
+    
     // MARK: - Drive Management
     
     public func addDisk(app: Application, vmName: String, diskName: String, sizeGB: Int, interface: String, importExisting: Bool = false) async throws {
@@ -1118,6 +1131,7 @@ public struct VMStorageService: MiniDockService, @unchecked Sendable {
     }
     
     public func compressDisk(app: Application, vmName: String, diskName: String) async throws {
+        try validateDiskName(diskName)
         let basePath = try await getBasePath(app: app)
         let vmPath = try await findVMPath(app: app, identifier: vmName)
         let diskPath = (vmPath as NSString).appendingPathComponent("Data/\(diskName)")
@@ -1154,8 +1168,8 @@ public struct VMStorageService: MiniDockService, @unchecked Sendable {
     }
 
     public func deleteDisk(app: Application, vmName: String, diskName: String) async throws {
-        let basePath = try await getBasePath(app: app)
-        let vmPath = (basePath as NSString).appendingPathComponent("\(vmName).utm")
+        try validateDiskName(diskName)
+        let vmPath = try await findVMPath(app: app, identifier: vmName)
         let diskPath = (vmPath as NSString).appendingPathComponent("Data/\(diskName)")
         
         if FileManager.default.fileExists(atPath: diskPath) {

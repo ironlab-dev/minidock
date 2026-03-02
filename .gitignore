@@ -76,3 +76,10 @@ CLAUDE.md
 SECURITY_AUDIT.md
 .claude/
 .kiro/
+
+# AI tool configuration (internal workflow, not for public)
+AGENTS.md
+
+# Sensitive directories (defensive — exclude by convention)
+secrets/
+credentials/

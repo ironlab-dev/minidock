@@ -479,7 +479,7 @@ public struct SolutionService: MiniDockService, @unchecked Sendable {
                 return (true, nil)
             }
         } catch {
-            // lsof failed — assume port is free
+            print("[SolutionService] lsof port check failed, assuming port is free: \(error)")
         }
         return (false, nil)
     }

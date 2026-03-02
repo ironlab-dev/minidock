@@ -16,14 +16,66 @@ limitations under the License.
 
 This product includes software developed by third parties:
 
-- Swift / Vapor (https://vapor.codes) — MIT License
+## Frontend Dependencies (npm)
+
+### Core Framework
 - Next.js (https://nextjs.org) — MIT License
 - React (https://react.dev) — MIT License
+- TypeScript (https://www.typescriptlang.org) — Apache-2.0 License
+
+### UI & Styling
 - Tailwind CSS (https://tailwindcss.com) — MIT License
-- noVNC (https://novnc.com) — MPL-2.0 License
-- QEMU (https://www.qemu.org) — GPL-2.0 License (runtime dependency, not bundled)
-- Lucide Icons (https://lucide.dev) — ISC License
 - Framer Motion (https://www.framer.com/motion/) — MIT License
+- Lucide Icons (https://lucide.dev) — ISC License
+
+### Drag & Drop
+- @dnd-kit/core (https://dndkit.com) — MIT License
+- @dnd-kit/sortable (https://dndkit.com) — MIT License
+- @dnd-kit/utilities (https://dndkit.com) — MIT License
+
+### Code Editor
+- CodeMirror (@codemirror/state, @codemirror/view) (https://codemirror.net) — MIT License
+- @codemirror/lang-javascript — MIT License
+- @codemirror/lang-python — MIT License
+- @codemirror/lang-xml — MIT License
+- @codemirror/lang-yaml — MIT License
+- @lezer/highlight (https://lezer.codemirror.net) — MIT License
+- @replit/codemirror-vim (https://github.com/replit/codemirror-vim) — MIT License
+- @uiw/react-codemirror (https://uiwjs.github.io/react-codemirror/) — MIT License
+
+### Terminal Emulator
+- @xterm/xterm (https://xtermjs.org) — MIT License
+- @xterm/addon-fit — MIT License
+- @xterm/addon-webgl — MIT License
+
+### Remote Desktop
+- noVNC / @novnc/novnc (https://novnc.com) — MPL-2.0 License
+
+### Utilities
+- ansi-to-react (https://github.com/nteract/ansi-to-react) — MIT License
+- date-fns (https://date-fns.org) — MIT License
+- ws (https://github.com/websockets/ws) — MIT License
+- pako (https://github.com/nodeca/pako) — MIT License
+
+## Backend Dependencies (Swift Package Manager)
+
+- Vapor (https://vapor.codes) — MIT License
+- Fluent (https://github.com/vapor/fluent) — MIT License
+- Fluent SQLite Driver (https://github.com/vapor/fluent-sqlite-driver) — MIT License
+- Swift JWT (https://github.com/vapor/jwt) — MIT License
+- SQLite (https://www.sqlite.org) — Public Domain
+
+## System Runtime Dependencies (not bundled)
+
+- QEMU (https://www.qemu.org) — GPL-2.0 License
+  MiniDock does not bundle QEMU. It is used at runtime as a separate process.
+  Users must install QEMU independently. See https://www.qemu.org/download/
+
+## noVNC (MPL-2.0) Notice
+
+noVNC is used as a web-based VNC client. It is subject to the Mozilla Public
+License 2.0. The source code for noVNC is available at:
+  https://github.com/novnc/noVNC
 
 Full dependency licenses can be found in:
   web/package.json        (npm packages)

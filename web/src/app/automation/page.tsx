@@ -765,7 +765,7 @@ export default function AutomationPage() {
                                                                 if (viewingLogs === task.id) {
                                                                     // 等待一小段时间让后端完成执行和日志保存
                                                                     setTimeout(async () => {
-                                                                        const updatedLogs = await fetchLogs(task.id);
+                                                                        const updatedLogs = await fetchLogs(task.id ?? '');
                                                                         setLogs(updatedLogs);
                                                                     }, 500);
                                                                 }

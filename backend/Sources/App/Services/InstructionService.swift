@@ -118,9 +118,13 @@ public actor InstructionService: MiniDockService {
     
     public func emitStarted(app: Application, command: String, fullCommand: String? = nil) async -> UUID {
         let inst = InstructionModel(command: command, fullCommand: fullCommand)
-        try? await inst.save(on: app.db)
-        
-        let id = inst.id!
+        inst.id = UUID() // Pre-assign ID so it is available even if DB persistence fails
+        do {
+            try await inst.save(on: app.db)
+        } catch {
+            app.logger.error("[InstructionService] Failed to persist instruction to DB: \(error)")
+        }
+        let id = inst.id! // Safe: ID was pre-assigned above
         activeInstructions[id] = inst
 
         // Evict oldest completed entries if we exceed the cap

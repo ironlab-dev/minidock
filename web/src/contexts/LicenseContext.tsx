@@ -14,7 +14,6 @@ const LicenseContext = createContext<LicenseContextType | undefined>(undefined);
 export function LicenseProvider({ children }: { children: React.ReactNode }) {
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const [nagwareVisible, setNagwareVisible] = useState(false);
-  const [nagwareMessage, setNagwareMessage] = useState('');
 
   // Check trial status on mount
   useEffect(() => {
@@ -33,8 +32,7 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const showNagware = useCallback((message?: string) => {
-    setNagwareMessage(message || 'Your trial has expired. Please activate your license to continue.');
+  const showNagware = useCallback((/* message?: string */) => {
     setNagwareVisible(true);
   }, []);
 
@@ -45,7 +43,7 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
   return (
     <LicenseContext.Provider value={{ isTrialExpired, showNagware, dismissNagware }}>
       {children}
-      {nagwareVisible && <NagwareModal message={nagwareMessage} onDismiss={dismissNagware} />}
+      {nagwareVisible && <NagwareModal isOpen={nagwareVisible} onClose={dismissNagware} />}
     </LicenseContext.Provider>
   );
 }

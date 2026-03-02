@@ -40,7 +40,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             return updated.slice(0, MAX_TOASTS);
         });
 
-        if (newToast.duration > 0) {
+        if ((newToast.duration ?? 0) > 0) {
             setTimeout(() => {
                 removeToast(id);
             }, newToast.duration);

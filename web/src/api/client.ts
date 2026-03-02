@@ -37,6 +37,23 @@ export const getBackendBaseUrl = (): string => {
     return "http://localhost:23000";
 };
 
+// ─── In-memory auth token ────────────────────────────────────────────────────
+// Set by AuthContext on login/refresh. Never written to localStorage, so an
+// XSS attack cannot steal it across page sessions. The httpOnly cookie is the
+// primary auth mechanism; this variable provides a Bearer-header fallback for
+// edge-case deployments where the cookie isn't forwarded by the proxy.
+let _memoryToken: string | null = null;
+
+/** Called by AuthContext whenever the session token changes (login / refresh / logout). */
+export function setClientToken(token: string | null): void {
+    _memoryToken = token;
+}
+
+/** Returns true if an in-memory session token is set (user is authenticated). */
+export function isClientAuthenticated(): boolean {
+    return _memoryToken !== null;
+}
+
 class ApiClient {
     private baseUrl: string;
 
@@ -61,12 +78,11 @@ class ApiClient {
             ...options.headers as Record<string, string>,
         };
 
-        // Inject Auth Token
-        if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('minidock_token');
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
+        // Inject in-memory token as Bearer header when available.
+        // The httpOnly cookie is sent automatically (same-origin) via credentials:'include'.
+        // This header provides a secondary auth path for non-proxy direct-backend access.
+        if (typeof window !== 'undefined' && _memoryToken) {
+            headers['Authorization'] = `Bearer ${_memoryToken}`;
         }
 
         // Only default to JSON if not explicitly set and not sending FormData
@@ -78,7 +94,8 @@ class ApiClient {
             const response = await fetch(url, {
                 ...options,
                 headers,
-                signal: controller.signal
+                credentials: 'include', // Send httpOnly session cookie automatically
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -99,12 +116,10 @@ class ApiClient {
                     // Body unreadable, keep default message
                 }
                 if (response.status === 401) {
-                    // We no longer do window.location.href = '/login' here
-                    // to avoid interfering with AuthContext's logic.
-                    // But we still clear storage as a safety measure.
+                    // Clear in-memory token on 401 so next explicit login sets fresh state.
+                    // AuthContext will handle the redirect to /login.
                     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-                        localStorage.removeItem('minidock_token');
-                        localStorage.removeItem('minidock_user');
+                        _memoryToken = null;
                     }
                 }
                 throw new Error(errorMessage);
@@ -116,11 +131,11 @@ class ApiClient {
             }
 
             const contentType = response.headers.get('content-type');
-            
+
             if (contentType && contentType.includes('application/json')) {
                 try {
                     const jsonData = await response.json();
-                    
+
                     // LICENSE NAG CHECK: Intercept mutations (POST, PUT, DELETE) if they succeeded
                     if (options.method && ['POST', 'PUT', 'DELETE'].includes(options.method)) {
                         // Don't intercept auth or license endpoints to avoid loops
@@ -141,7 +156,6 @@ class ApiClient {
                     return {} as T;
                 }
             }
-
 
             const textData = await response.text();
             return textData as unknown as T;
@@ -252,6 +266,12 @@ class ApiClient {
 
             // Send request
             xhr.open('POST', url, true);
+            xhr.withCredentials = true; // Send httpOnly session cookie for file uploads
+
+            // Set in-memory token as Authorization header (same as fetch requests)
+            if (_memoryToken) {
+                xhr.setRequestHeader('Authorization', `Bearer ${_memoryToken}`);
+            }
 
             // Set custom headers if provided
             if (headers) {

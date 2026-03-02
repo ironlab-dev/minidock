@@ -103,10 +103,11 @@ export default function SolutionInstalled({ solutions, getSolutionDetail, perfor
     }, [performAction, getSolutionDetail, onRefresh, toast, t]);
 
     const handleUninstall = useCallback(async (sol: SolutionInfo) => {
-        const confirmed = await confirm(
-            t.solutions.installed.uninstall_confirm.replace('{name}', sol.name),
-            { destructive: true }
-        );
+        const confirmed = await confirm({
+            title: t.solutions.installed.uninstall || t.common.delete,
+            message: t.solutions.installed.uninstall_confirm.replace('{name}', sol.name),
+            variant: 'danger',
+        });
         if (!confirmed) return;
 
         setLoadingActions(prev => ({ ...prev, [sol.id]: true }));

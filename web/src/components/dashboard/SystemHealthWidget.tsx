@@ -11,7 +11,7 @@ interface SystemHealthWidgetProps {
     systemService?: ServiceInfo;
 }
 
-function formatUptime(seconds: number | string | undefined, t: { common: Record<string, string>; dashboard: Record<string, string>; [key: string]: Record<string, string> }): { main: string, sub: string } {
+function formatUptime(seconds: number | string | undefined, t: { common: Record<string, string>; dashboard: Record<string, unknown>; [key: string]: Record<string, unknown> }): { main: string, sub: string } {
     if (!seconds) return { main: t.common.unknown || "未知", sub: "" };
 
     const sec = typeof seconds === 'string' ? parseFloat(seconds) : seconds;

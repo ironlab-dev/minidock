@@ -22,7 +22,7 @@ public struct UTMService: MiniDockService, @unchecked Sendable {
                 stats["vms_total"] = "\(vms.count)"
                 stats["vms_running"] = "\(vms.filter { $0.status == "running" }.count)"
             } catch {
-                // Ignore error for stats
+                app.logger.debug("[UTMService] Failed to list VMs for stats (UTM may be loading): \(error)")
             }
         } else {
             stats["vms_total"] = "0"
