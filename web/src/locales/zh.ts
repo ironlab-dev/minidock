@@ -69,6 +69,7 @@ export const zh = {
         collapse: "收起",
         terminal: "终端控制",
         solutions: "快捷中心",
+        visit_website: "访问官网",
     },
     terminal: {
         title: "Web 终端",
@@ -308,6 +309,7 @@ export const zh = {
             view_details: "查看详情",
         },
         view_all: "查看全部",
+        save_error: "保存失败",
         file_manager: {
             title: "文件管理",
             data_folder: "数据目录",
@@ -392,6 +394,10 @@ export const zh = {
         click_to_edit: "点击编辑",
         manage_isos: "管理 ISO 镜像",
         manage_files: "管理 VM 文件",
+        status: {
+            running: "运行中",
+            stopped: "已停止",
+        },
         tabs: {
             monitor: "运行负载",
             manage: "应用编排",
@@ -435,6 +441,8 @@ export const zh = {
             failed_to_action_vm: "虚拟机{action}失败",
             failed_to_create_vm: "创建虚拟机失败",
             cannot_rename_running: "无法在虚拟机运行时重命名。请先停止虚拟机。",
+        stop_vm: "停止虚拟机",
+        stop_vm_confirm: "确定要停止虚拟机 \"{name}\" 吗？",
         },
         view_all: "查看全部",
         manage: {

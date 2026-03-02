@@ -178,7 +178,7 @@ public struct DockerEngineService: MiniDockService, @unchecked Sendable {
                     }
                 }
             } catch {
-                // Fallback
+                app.logger.warning("[DockerEngine] Failed to parse container stats: \(error)")
             }
         }
 

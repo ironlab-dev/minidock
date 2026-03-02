@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from "@/hooks/useTranslation";
 import { useIPInfo } from "@/hooks/useIPInfo";
 import { client } from '@/api/client';
+import { useToast } from '@/hooks/useToast';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
     Network,
     Shield,
@@ -36,6 +38,8 @@ interface ServiceInfo {
 export const ConnectivitySettings: React.FC = () => {
     const { t } = useTranslation();
     const { ipInfo } = useIPInfo();
+    const toast = useToast();
+    const { confirm, ConfirmDialog } = useConfirm();
     const [keys, setKeys] = useState<SSHKey[]>([]);
     const [newKey, setNewKey] = useState('');
     const [externalIP, setExternalIP] = useState<string | null>(null);
@@ -115,7 +119,7 @@ export const ConnectivitySettings: React.FC = () => {
     };
 
     const handleDeleteKey = async (signature: string) => {
-        if (!confirm('Delete this key?')) return;
+        if (!await confirm({ title: 'Delete SSH Key', message: 'Are you sure you want to delete this key?', confirmText: t.common.delete || 'Delete', variant: 'danger' })) return;
         try {
             await client.delete(`/ssh/keys?signature=${encodeURIComponent(signature)}`);
             setRefreshTrigger(p => p + 1);
@@ -136,7 +140,7 @@ export const ConnectivitySettings: React.FC = () => {
             for (const cfg of configs) {
                 await client.post('/settings', cfg);
             }
-            alert(t.common.saved || 'Saved');
+            toast.success(t.common.saved || 'Saved');
             // 保存成功后立即刷新数据
             const data = await client.get<{ stats: Record<string, string> }>('/services/ssh-manager');
             if (data.stats.external_host !== undefined) setExtHost(data.stats.external_host);
@@ -144,7 +148,7 @@ export const ConnectivitySettings: React.FC = () => {
             if (data.stats.external_vnc_port !== undefined) setVncExtPort(data.stats.external_vnc_port);
         } catch (e) {
             console.error("Failed to save config", e);
-            alert(e instanceof Error ? e.message : '保存失败，请重试');
+            toast.error(e instanceof Error ? e.message : 'Save failed, please try again');
         } finally {
             setIsSaving(false);
         }
@@ -152,7 +156,7 @@ export const ConnectivitySettings: React.FC = () => {
 
     const handleCheckConnectivity = async () => {
         if (!extHost.trim()) {
-            alert(t.ssh.connectivity.external_domain_desc || '请先填写外部域名');
+            toast.warning(t.ssh.connectivity.external_domain_desc || 'Please fill in the external domain first');
             return;
         }
         
@@ -181,7 +185,7 @@ export const ConnectivitySettings: React.FC = () => {
             })));
         } catch (e) {
             console.error("Failed to check connectivity", e);
-            alert(e instanceof Error ? e.message : (t.common.error || '检测失败，请重试'));
+            toast.error(e instanceof Error ? e.message : (t.common.error || 'Connectivity check failed, please try again'));
         } finally {
             setIsChecking(false);
         }
@@ -504,6 +508,7 @@ export const ConnectivitySettings: React.FC = () => {
                     </div>
                 </div>
             </div>
+            <ConfirmDialog />
         </div>
     );
 };

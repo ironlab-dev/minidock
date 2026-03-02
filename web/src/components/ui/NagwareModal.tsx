@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface NagwareModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onClose: () => void;
 }
 
 export const NagwareModal: React.FC<NagwareModalProps> = ({ isOpen, onClose }) => {

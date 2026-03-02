@@ -119,11 +119,8 @@ export async function uploadWithRsync(
             xhr.setRequestHeader('X-File-Name', safeName);
             xhr.setRequestHeader('Content-Type', 'application/octet-stream');
             
-            // 添加认证头
-            const token = localStorage.getItem('minidock_token');
-            if (token) {
-                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-            }
+            // Use httpOnly session cookie for auth (same as ApiClient)
+            xhr.withCredentials = true;
 
             if (onProgress) {
                 xhr.upload.onprogress = (e) => {
@@ -160,17 +157,13 @@ export async function uploadWithRsync(
         });
 
         // 步骤 2: 调用后端接口完成处理
-        const token = localStorage.getItem('minidock_token');
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'X-Upload-ID': uploadId,
-        };
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
         const rsyncResponse = await fetch(`${API_URL}/vms/services/isos/upload-rsync`, {
             method: 'POST',
-            headers,
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Upload-ID': uploadId,
+            },
             body: JSON.stringify({
                 tempFileName: tempFileName,
                 fileName: file.name,

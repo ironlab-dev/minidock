@@ -122,7 +122,7 @@ export function RemoteAccessSettings() {
       (async () => {
         setIsEnabling(true);
         try {
-          const res = await client.post<TailscaleAuthResponse>('/remote/enable');
+          const res = await client.post<TailscaleAuthResponse>('/remote/enable', {});
           if (res.authURL) {
             setAuthURL(res.authURL);
             window.open(res.authURL, '_blank');
@@ -143,7 +143,7 @@ export function RemoteAccessSettings() {
     setIsEnabling(true);
     setError(null);
     try {
-      const res = await client.post<TailscaleAuthResponse>('/remote/enable');
+      const res = await client.post<TailscaleAuthResponse>('/remote/enable', {});
       if (res.authURL) {
         setAuthURL(res.authURL);
         // Auto-open the auth URL
@@ -163,7 +163,7 @@ export function RemoteAccessSettings() {
     setIsDisabling(true);
     setError(null);
     try {
-      await client.post('/remote/disable');
+      await client.post('/remote/disable', {});
       await fetchStatus();
     } catch (err) {
       console.error('Failed to disable:', err);
@@ -178,7 +178,7 @@ export function RemoteAccessSettings() {
     setIsDisabling(true);
     setError(null);
     try {
-      await client.post('/remote/logout');
+      await client.post('/remote/logout', {});
       setAuthURL(null);
       await fetchStatus();
     } catch (err) {
@@ -291,7 +291,7 @@ export function RemoteAccessSettings() {
                                 onClick={async () => {
                                   try {
                                     setError(null);
-                                    const res = await client.post<{ opened: boolean }>('/remote/open-tailscale');
+                                    const res = await client.post<{ opened: boolean }>('/remote/open-tailscale', {});
                                     if (!res.opened) {
                                       setError('Tailscale 应用未找到，请尝试重新安装');
                                     }
@@ -318,7 +318,7 @@ export function RemoteAccessSettings() {
                                   try {
                                     setError(null);
                                     setIsInstalling(true);
-                                    await client.post('/remote/download-install');
+                                    await client.post('/remote/download-install', {});
                                     setInstallerOpened(true);
                                   } catch (err) {
                                     setError(err instanceof Error ? err.message : '下载或安装失败');

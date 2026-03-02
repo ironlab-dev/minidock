@@ -32,13 +32,13 @@ export const mockServices = [
 // ── Docker ──
 
 export const mockDockerServices = [
-    { name: 'nginx-proxy', isManaged: true, isRunning: true, expectedImage: 'jwilder/nginx-proxy:latest', actualImage: 'jwilder/nginx-proxy:latest' },
-    { name: 'postgres', isManaged: true, isRunning: true, expectedImage: 'postgres:16-alpine', actualImage: 'postgres:16-alpine' },
-    { name: 'redis', isManaged: true, isRunning: true, expectedImage: 'redis:7-alpine', actualImage: 'redis:7-alpine' },
-    { name: 'jellyfin', isManaged: true, isRunning: true, expectedImage: 'jellyfin/jellyfin:latest', actualImage: 'jellyfin/jellyfin:latest' },
-    { name: 'homebridge', isManaged: true, isRunning: false, expectedImage: 'homebridge/homebridge:latest', actualImage: 'homebridge/homebridge:latest' },
-    { name: 'portainer', isManaged: false, isRunning: true },
-    { name: 'watchtower', isManaged: false, isRunning: true },
+    { name: 'nginx-proxy', directoryName: 'nginx-proxy', isManaged: true, isRunning: true, expectedImage: 'jwilder/nginx-proxy:latest', actualImage: 'jwilder/nginx-proxy:latest' },
+    { name: 'postgres', directoryName: 'postgres', isManaged: true, isRunning: true, expectedImage: 'postgres:16-alpine', actualImage: 'postgres:16-alpine' },
+    { name: 'redis', directoryName: 'redis', isManaged: true, isRunning: true, expectedImage: 'redis:7-alpine', actualImage: 'redis:7-alpine' },
+    { name: 'jellyfin', directoryName: 'jellyfin', isManaged: true, isRunning: true, expectedImage: 'jellyfin/jellyfin:latest', actualImage: 'jellyfin/jellyfin:latest' },
+    { name: 'homebridge', directoryName: 'homebridge', isManaged: true, isRunning: false, expectedImage: 'homebridge/homebridge:latest', actualImage: 'homebridge/homebridge:latest' },
+    { name: 'portainer', directoryName: 'portainer', isManaged: false, isRunning: true },
+    { name: 'watchtower', directoryName: 'watchtower', isManaged: false, isRunning: true },
 ];
 
 export const mockDockerItems = [
