@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" class="noVNC_loading">
+
+<head>
+    <title>VNC Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+
+    <!-- Load noVNC official app styles -->
+    <link rel="stylesheet" href="/novnc/app/styles/constants.css">
+    <link rel="stylesheet" href="/novnc/app/styles/base.css">
+    <link rel="stylesheet" href="/novnc/app/styles/input.css">
+
+    <!-- Preload images -->
+    <link rel="preload" as="image" href="/novnc/app/images/info.svg">
+    <link rel="preload" as="image" href="/novnc/app/images/error.svg">
+    <link rel="preload" as="image" href="/novnc/app/images/warning.svg">
+
+    <script type="module" crossorigin="anonymous" src="/novnc/app/error-handler.js"></script>
+
+    <script type="module">
+        import UI from "/novnc/app/ui.js";
+        import * as Log from '/novnc/core/util/logging.js';
+
+        // Check Web Crypto API availability (warning only, don't block)
+        // Standard VNC authentication (DES) works without Web Crypto API
+        // Only ARD authentication (AES) requires Web Crypto API
+        (function checkCryptoAPI() {
+            const hasSubtle = window.crypto && window.crypto.subtle;
+            const isSecureContext = window.isSecureContext;
+            
+            if (!hasSubtle) {
+                console.warn('[noVNC] Web Crypto API (window.crypto.subtle) not available.');
+                console.warn('[noVNC] ARD authentication (AES) will not work.');
+                console.warn('[noVNC] Standard VNC authentication (DES) should still work.');
+                console.warn('[noVNC] For full support, use HTTPS or localhost.');
+                console.warn('[noVNC] isSecureContext:', isSecureContext, 'protocol:', window.location.protocol);
+            }
+        })();
+
+        // Get VM name and WebSocket URL from query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const vmName = urlParams.get('vm');
+        const wsUrl = urlParams.get('ws');
+
+        if (!vmName || !wsUrl) {
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;font-family:sans-serif;background:#000;"><div>Missing required parameters: vm and ws</div></div>';
+        } else {
+            // Parse WebSocket URL to extract components
+            let wsHost, wsPort, wsPath, wsEncrypt;
+            try {
+                const wsUrlObj = new URL(wsUrl);
+                wsHost = wsUrlObj.hostname;
+                wsPort = wsUrlObj.port || (wsUrlObj.protocol === 'wss:' ? '443' : '80');
+                wsPath = wsUrlObj.pathname + wsUrlObj.search;
+                wsEncrypt = wsUrlObj.protocol === 'wss:';
+            } catch (e) {
+                Log.Error("Invalid WebSocket URL: " + e);
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;font-family:sans-serif;background:#000;"><div>Invalid WebSocket URL</div></div>';
+            }
+
+            // Function to send status to parent window
+            function sendStatus(status, message) {
+                if (window.parent !== window) {
+                    // Use targetOrigin for security (same origin as parent)
+                    const targetOrigin = window.location.origin;
+                    window.parent.postMessage({
+                        type: 'vnc-status',
+                        status: status,
+                        message: message,
+                        vmName: vmName
+                    }, targetOrigin);
+                }
+            }
+
+            // Hook into UI events to send status to parent
+            const originalConnectFinished = UI.connectFinished;
+            UI.connectFinished = function (e) {
+                sendStatus('connected', 'VNC connection established');
+                return originalConnectFinished.call(this, e);
+            };
+
+            const originalDisconnectFinished = UI.disconnectFinished;
+            UI.disconnectFinished = function (e) {
+                if (e.detail.clean) {
+                    sendStatus('disconnected', 'VNC connection closed');
+                } else {
+                    sendStatus('error', 'VNC connection lost');
+                }
+                return originalDisconnectFinished.call(this, e);
+            };
+
+            const originalSecurityFailed = UI.securityFailed;
+            UI.securityFailed = function (e) {
+                const reason = e.detail?.reason || 'Unknown security error';
+                console.error('[noVNC] Security failed:', reason);
+                sendStatus('error', `Security failure: ${reason}`);
+                return originalSecurityFailed.call(this, e);
+            };
+
+            const originalCredentials = UI.credentials;
+            UI.credentials = function (e) {
+                console.log('[noVNC] Credentials required');
+                // Don't send 'error' status for credentials, as it covers the UI in the parent
+                sendStatus('credentials-required', 'VNC server requires credentials');
+                return originalCredentials.call(this, e);
+            };
+
+            // Handle messages from parent
+            window.addEventListener('message', (event) => {
+                // Verify message origin for security
+                if (event.origin !== window.location.origin) {
+                    return;
+                }
+                if (event.data.type === 'vnc-ctrl-alt-del' && UI.rfb) {
+                    UI.rfb.sendCtrlAltDel();
+                }
+                if (event.data.type === 'vnc-disconnect' && UI.rfb) {
+                    Log.Info("Received disconnect request from parent");
+                    UI.disconnect();
+                }
+            });
+
+            // Configure noVNC with WebSocket connection
+            const defaults = {
+                path: wsPath,
+                host: wsHost,
+                port: wsPort,
+                encrypt: wsEncrypt,
+                password: urlParams.get('password') || '',
+                view_only: false,
+                resize: 'scale',
+                quality_level: 6,
+                compression_level: 2,
+                reconnect: true,
+                reconnect_delay: 3000,
+            };
+
+            const mandatory = {
+                // Force connection to our WebSocket proxy
+                path: wsPath,
+                host: wsHost,
+                port: wsPort,
+                encrypt: wsEncrypt,
+            };
+
+            const password = urlParams.get('password');
+            if (password) {
+                mandatory.password = password;
+            }
+
+            UI.start({
+                settings: {
+                    defaults: defaults,
+                    mandatory: mandatory
+                }
+            });
+
+            // Focus keyboard input when window is focused
+            window.addEventListener('focus', () => {
+                const kbInput = document.getElementById('noVNC_keyboardinput');
+                if (kbInput) kbInput.focus();
+            });
+
+            // Global error handler for uncaught errors (like crypto errors)
+            window.addEventListener('error', (event) => {
+                console.error('[noVNC] Global error:', event.error, event.message, event.filename, event.lineno);
+                if (event.message && event.message.includes('importKey')) {
+                    console.error('[noVNC] Crypto API error detected!');
+                    console.error('[noVNC] Error details:', {
+                        message: event.message,
+                        filename: event.filename,
+                        lineno: event.lineno,
+                        colno: event.colno,
+                        error: event.error,
+                        stack: event.error?.stack
+                    });
+                    sendStatus('error', 'Web Crypto API 错误: ' + event.message);
+                }
+            });
+            
+            window.addEventListener('unhandledrejection', (event) => {
+                console.error('[noVNC] Unhandled promise rejection:', event.reason);
+                if (event.reason && (event.reason.message?.includes('importKey') || event.reason.message?.includes('crypto'))) {
+                    console.error('[noVNC] Crypto API promise rejection detected!');
+                    sendStatus('error', 'Web Crypto API 错误: ' + (event.reason.message || String(event.reason)));
+                }
+            });
+
+            // Auto-connect after a short delay
+            setTimeout(() => {
+                if (!UI.rfb) {
+                    console.log('[noVNC] Auto-connecting...');
+                    UI.connect();
+                }
+            }, 500);
+        }
+    </script>
+</head>
+
+<body>
+    <!-- noVNC UI will be rendered here -->
+    <!-- Copy the body structure from noVNC official vnc.html -->
+    <div id="noVNC_fallback_error" class="noVNC_center">
+        <div>
+            <div>noVNC encountered an error:</div>
+            <br>
+            <div id="noVNC_fallback_errormsg"></div>
+        </div>
+    </div>
+
+    <!-- noVNC control bar -->
+    <div id="noVNC_control_bar_anchor" class="noVNC_vcenter">
+        <div id="noVNC_control_bar">
+            <div id="noVNC_control_bar_handle" title="Hide/Show the control bar">
+                <div></div>
+            </div>
+            <div class="noVNC_scroll">
+                <h1 class="noVNC_logo" translate="no"><span>no</span><br>VNC</h1>
+                <hr>
+                <input type="image" alt="Drag" src="/novnc/app/images/drag.svg" id="noVNC_view_drag_button"
+                    class="noVNC_button noVNC_hidden" title="Move/Drag viewport">
+                <div id="noVNC_mobile_buttons">
+                    <input type="image" alt="Keyboard" src="/novnc/app/images/keyboard.svg" id="noVNC_keyboard_button"
+                        class="noVNC_button" title="Show keyboard">
+                </div>
+                <input type="image" alt="Extra keys" src="/novnc/app/images/toggleextrakeys.svg"
+                    id="noVNC_toggle_extra_keys_button" class="noVNC_button" title="Show extra keys">
+                <div class="noVNC_vcenter">
+                    <div id="noVNC_modifiers" class="noVNC_panel">
+                        <input type="image" alt="Ctrl" src="/novnc/app/images/ctrl.svg" id="noVNC_toggle_ctrl_button"
+                            class="noVNC_button" title="Toggle Ctrl">
+                        <input type="image" alt="Alt" src="/novnc/app/images/alt.svg" id="noVNC_toggle_alt_button"
+                            class="noVNC_button" title="Toggle Alt">
+                        <input type="image" alt="Windows" src="/novnc/app/images/windows.svg"
+                            id="noVNC_toggle_windows_button" class="noVNC_button" title="Toggle Windows">
+                        <input type="image" alt="Tab" src="/novnc/app/images/tab.svg" id="noVNC_send_tab_button"
+                            class="noVNC_button" title="Send Tab">
+                        <input type="image" alt="Esc" src="/novnc/app/images/esc.svg" id="noVNC_send_esc_button"
+                            class="noVNC_button" title="Send Escape">
+                        <input type="image" alt="Ctrl+Alt+Del" src="/novnc/app/images/ctrlaltdel.svg"
+                            id="noVNC_send_ctrl_alt_del_button" class="noVNC_button" title="Send Ctrl-Alt-Del">
+                    </div>
+                </div>
+                <input type="image" alt="Shutdown/Reboot" src="/novnc/app/images/power.svg" id="noVNC_power_button"
+                    class="noVNC_button" title="Shutdown/Reboot...">
+                <div class="noVNC_vcenter">
+                    <div id="noVNC_power" class="noVNC_panel">
+                        <div class="noVNC_heading">
+                            <img alt="" src="/novnc/app/images/power.svg"> Power
+                        </div>
+                        <input type="button" id="noVNC_shutdown_button" value="Shutdown">
+                        <input type="button" id="noVNC_reboot_button" value="Reboot">
+                        <input type="button" id="noVNC_reset_button" value="Reset">
+                    </div>
+                </div>
+                <input type="image" alt="Clipboard" src="/novnc/app/images/clipboard.svg" id="noVNC_clipboard_button"
+                    class="noVNC_button" title="Clipboard">
+                <div class="noVNC_vcenter">
+                    <div id="noVNC_clipboard" class="noVNC_panel">
+                        <div class="noVNC_heading">
+                            <img alt="" src="/novnc/app/images/clipboard.svg"> Clipboard
+                        </div>
+                        <p class="noVNC_subheading">
+                            Edit clipboard content in the textarea below.
+                        </p>
+                        <textarea id="noVNC_clipboard_text" rows=5></textarea>
+                    </div>
+                </div>
+                <input type="image" alt="Full screen" src="/novnc/app/images/fullscreen.svg"
+                    id="noVNC_fullscreen_button" class="noVNC_button noVNC_hidden" title="Full screen">
+                <input type="image" alt="Settings" src="/novnc/app/images/settings.svg" id="noVNC_settings_button"
+                    class="noVNC_button" title="Settings">
+                <div class="noVNC_vcenter">
+                    <div id="noVNC_settings" class="noVNC_panel">
+                        <div class="noVNC_heading">
+                            <img alt="" src="/novnc/app/images/settings.svg"> Settings
+                        </div>
+                        <ul>
+                            <li>
+                                <label>
+                                    <input id="noVNC_setting_shared" type="checkbox" class="toggle">
+                                    Shared mode
+                                </label>
+                            </li>
+                            <li>
+                                <label>
+                                    <input id="noVNC_setting_view_only" type="checkbox" class="toggle">
+                                    View only
+                                </label>
+                            </li>
+                            <li>
+                                <hr>
+                            </li>
+                            <li>
+                                <label>
+                                    <input id="noVNC_setting_view_clip" type="checkbox" class="toggle">
+                                    Clip to window
+                                </label>
+                            </li>
+                            <li>
+                                <label for="noVNC_setting_resize">Scaling mode:</label>
+                                <select id="noVNC_setting_resize" name="vncResize">
+                                    <option value="off">None</option>
+                                    <option value="scale">Local scaling</option>
+                                    <option value="remote">Remote resizing</option>
+                                </select>
+                            </li>
+                            <li>
+                                <hr>
+                            </li>
+                            <li>
+                                <div class="noVNC_expander">Advanced</div>
+                                <div>
+                                    <ul>
+                                        <li>
+                                            <label for="noVNC_setting_quality">Quality:</label>
+                                            <input id="noVNC_setting_quality" type="range" min="0" max="9" value="6">
+                                        </li>
+                                        <li>
+                                            <label for="noVNC_setting_compression">Compression level:</label>
+                                            <input id="noVNC_setting_compression" type="range" min="0" max="9"
+                                                value="2">
+                                        </li>
+                                        <li>
+                                            <hr>
+                                        </li>
+                                        <li>
+                                            <label for="noVNC_setting_repeaterID">Repeater ID:</label>
+                                            <input id="noVNC_setting_repeaterID" type="text" value="">
+                                        </li>
+                                        <li>
+                                            <div class="noVNC_expander">WebSocket</div>
+                                            <div>
+                                                <ul>
+                                                    <li>
+                                                        <label>
+                                                            <input id="noVNC_setting_encrypt" type="checkbox"
+                                                                class="toggle">
+                                                            Encrypt
+                                                        </label>
+                                                    </li>
+                                                    <li>
+                                                        <label for="noVNC_setting_host">Host:</label>
+                                                        <input id="noVNC_setting_host">
+                                                    </li>
+                                                    <li>
+                                                        <label for="noVNC_setting_port">Port:</label>
+                                                        <input id="noVNC_setting_port" type="number">
+                                                    </li>
+                                                    <li>
+                                                        <label for="noVNC_setting_path">Path:</label>
+                                                        <input id="noVNC_setting_path" type="text" value="websockify">
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <hr>
+                                        </li>
+                                        <li>
+                                            <label>
+                                                <input id="noVNC_setting_reconnect" type="checkbox" class="toggle">
+                                                Automatic reconnect
+                                            </label>
+                                        </li>
+                                        <li>
+                                            <label for="noVNC_setting_reconnect_delay">Reconnect delay (ms):</label>
+                                            <input id="noVNC_setting_reconnect_delay" type="number">
+                                        </li>
+                                        <li>
+                                            <hr>
+                                        </li>
+                                        <li>
+                                            <label>
+                                                <input id="noVNC_setting_show_dot" type="checkbox" class="toggle">
+                                                Show dot when no cursor
+                                            </label>
+                                        </li>
+                                        <li>
+                                            <hr>
+                                        </li>
+                                        <li>
+                                            <label>Logging:
+                                                <select id="noVNC_setting_logging" name="vncLogging">
+                                                </select>
+                                            </label>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="noVNC_version_separator">
+                                <hr>
+                            </li>
+                            <li class="noVNC_version_wrapper">
+                                <span>Version:</span>
+                                <span class="noVNC_version"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <input type="image" alt="Disconnect" src="/novnc/app/images/disconnect.svg" id="noVNC_disconnect_button"
+                    class="noVNC_button" title="Disconnect">
+            </div>
+        </div>
+    </div>
+
+    <div id="noVNC_hint_anchor" class="noVNC_vcenter">
+        <div id="noVNC_control_bar_hint">
+        </div>
+    </div>
+
+    <div id="noVNC_status"></div>
+
+    <div class="noVNC_center">
+        <div id="noVNC_connect_dlg">
+            <p class="noVNC_logo" translate="no"><span>no</span>VNC</p>
+            <div>
+                <button id="noVNC_connect_button">
+                    <img alt="" src="/novnc/app/images/connect.svg"> Connect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="noVNC_center noVNC_connect_layer">
+        <div id="noVNC_verify_server_dlg" class="noVNC_panel">
+            <form>
+                <div class="noVNC_heading">
+                    Server identity
+                </div>
+                <div>
+                    The server has provided the following identifying information:
+                </div>
+                <div id="noVNC_fingerprint_block">
+                    Fingerprint:
+                    <span id="noVNC_fingerprint"></span>
+                </div>
+                <div>
+                    Please verify that the information is correct and press
+                    "Approve". Otherwise press "Reject".
+                </div>
+                <div class="button_row">
+                    <input id="noVNC_approve_server_button" type="submit" value="Approve">
+                    <input id="noVNC_reject_server_button" type="button" value="Reject">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="noVNC_center noVNC_connect_layer">
+        <div id="noVNC_credentials_dlg" class="noVNC_panel">
+            <form>
+                <div class="noVNC_heading">
+                    Credentials
+                </div>
+                <div id="noVNC_username_block">
+                    <label for="noVNC_username_input">Username:</label>
+                    <input id="noVNC_username_input">
+                </div>
+                <div id="noVNC_password_block">
+                    <label for="noVNC_password_input">Password:</label>
+                    <input id="noVNC_password_input" type="password">
+                </div>
+                <div class="button_row">
+                    <input id="noVNC_credentials_button" type="submit" value="Send credentials">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="noVNC_transition">
+        <div id="noVNC_transition_text"></div>
+        <div>
+            <input type="button" id="noVNC_cancel_reconnect_button" value="Cancel">
+        </div>
+        <div class="noVNC_spinner"></div>
+    </div>
+
+    <div id="noVNC_container">
+        <textarea id="noVNC_keyboardinput" autocapitalize="off" autocomplete="off" spellcheck="false"
+            tabindex="-1"></textarea>
+    </div>
+
+    <audio id="noVNC_bell">
+        <source src="/novnc/app/sounds/bell.oga" type="audio/ogg">
+        <source src="/novnc/app/sounds/bell.mp3" type="audio/mpeg">
+    </audio>
+</body>
+
+</html>

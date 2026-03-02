@@ -1,0 +1,49 @@
+# XcodeGen spec for MiniDock Mac App (App Store / archive)
+# Generate: brew install xcodegen && xcodegen generate
+# Then open MiniDock.xcodeproj, select signing team, and Product > Archive
+
+name: MiniDock
+options:
+  bundleIdPrefix: cc.ironlab
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  MARKETING_VERSION: "0.1.0"
+  CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  BCrypt:
+    url: https://github.com/Pepijn98/BCrypt.git
+    from: 1.0.0
+targets:
+  MiniDock:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: macos/Sources/MiniDockApp
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: cc.ironlab.minidock
+      PRODUCT_NAME: MiniDock
+      INFOPLIST_FILE: macos/Info.plist
+      CODE_SIGN_ENTITLEMENTS: macos/MiniDock.entitlements
+      SWIFT_VERSION: "5.0"
+      LD_RUNPATH_SEARCH_PATHS: ["@executable_path/../Frameworks"]
+    entitlements:
+      path: macos/MiniDock.entitlements
+    dependencies:
+      - package: BCrypt
+    preBuildScripts:
+      - name: Build Backend and Web
+        script: |
+          set -e
+          cd "${PROJECT_DIR}/backend" && swift build -c release
+          cd "${PROJECT_DIR}/web" && BACKEND_PORT=28080 npm run build
+        basedOnDependencyAnalysis: false
+    postBuildScripts:
+      - name: Copy Resources to Bundle
+        script: "${PROJECT_DIR}/scripts/xcode_bundle_resources.sh"
+        basedOnDependencyAnalysis: false

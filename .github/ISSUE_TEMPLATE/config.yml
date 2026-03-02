@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/ironlab-dev/minidock/discussions
+    about: Ask questions, share ideas, and discuss with the community
+  - name: 📚 Documentation
+    url: https://github.com/ironlab-dev/minidock/tree/master/docs
+    about: Read the documentation for guides and API reference
+  - name: 🌐 Official Website
+    url: https://minidock.net
+    about: Visit the official MiniDock website
+  - name: 📧 Email Support
+    url: mailto:minidock@ironlab.cc
+    about: Contact us directly for commercial inquiries or sensitive issues
