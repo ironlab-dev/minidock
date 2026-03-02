@@ -1,0 +1,78 @@
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+
+# Swift / Vapor
+.build/
+Packages/
+Package.resolved
+*.swp
+*.swo
+
+# Node / Next.js
+node_modules/
+.next/
+dist/
+out/
+build/
+auth.sqlite*
+db.sqlite*
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Project Specific
+backend/Data/database/
+*.log
+backend/build_output.txt
+.env
+.env.local
+.env.*.local
+
+# noVNC source archives
+web/public/novnc-app/novnc.tar.gz
+
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+MiniDock.app/
+.dev_state
+
+# Playwright MCP
+.playwright-mcp/
+
+# Screenshots (temporary captures)
+/*.png
+/*.jpeg
+/*.jpg
+
+# SSL certificates (generated locally)
+certs/*.crt
+certs/*.key
+
+# Development
+dev.pid
+test_env/
+update_client.js
+
+# Private repo (submodule managed separately)
+private/
+
+# Sensitive / AI tool configs (not for public repo)
+PRIVATE_REPO.md
+CLAUDE.md
+SECURITY_AUDIT.md
+.claude/
+.kiro/

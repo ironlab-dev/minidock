@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: '3270 Nerd Font';
+  src: url('/fonts/3270NerdFont-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer components {
+
+  /* MiniDock Typography System */
+  .text-label {
+    @apply text-[10px] uppercase font-bold tracking-widest text-gray-500;
+  }
+
+  .text-section {
+    @apply text-[10px] uppercase font-bold tracking-[0.15em] text-gray-500 flex items-center gap-2;
+  }
+
+  .text-ui-bold {
+    @apply text-xs font-bold uppercase tracking-wider;
+  }
+
+  .text-value {
+    @apply text-sm font-normal text-white;
+  }
+
+}
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 8, 8, 10;
+  --sidebar-bg: 10, 10, 13;
+  --card-bg: rgba(255, 255, 255, 0.02);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --selection-blue: #3b82f6;
+  --brand-blue: #3b82f6;
+  --brand-emerald: #10b981;
+  --brand-purple: #a855f7;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background-color: rgb(var(--background-rgb));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* High-Tech UI Utilities */
+  .glass-card {
+    @apply bg-white/[0.02] border border-white/[0.06] backdrop-blur-2xl;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.02);
+  }
+
+  .rim-light {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .segmented-dot {
+    @apply w-1.5 h-1.5 rounded-full transition-all duration-300;
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+  }
+
+  .glow-emerald {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+  }
+
+  .divider-glow {
+    @apply h-[1px] w-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent;
+  }
+}
+
+/* Global Selection Strategy: Deny by Default */
+body {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Allow selection and cursor for input elements */
+input,
+textarea,
+select,
+[contenteditable="true"],
+.prose,
+.selectable,
+.selectable *,
+.cm-editor,
+.cm-content,
+.monaco-editor,
+code,
+pre {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
+}
+
+/* Ensure focus behavior is correct for inputs */
+input:focus,
+textarea:focus,
+select:focus,
+[contenteditable="true"]:focus,
+.cm-editor:focus,
+.cm-content:focus {
+  caret-color: auto;
+}
+
+/* Interactive elements should have pointer cursor */
+button,
+a,
+[role="button"],
+summary,
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Scroll Performance Optimization */
+@supports (scroll-behavior: smooth) {
+  * {
+    scroll-behavior: auto;
+  }
+}
+
+/* GPU-accelerated scrolling containers */
+[data-scroll-container] {
+  transform: translateZ(0);
+  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}

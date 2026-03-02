@@ -1,0 +1,47 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    branches: [ master, main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  build:
+    runs-on: macos-14
+    
+    defaults:
+      run:
+        working-directory: backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.0'
+      
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: backend/.build
+          key: ${{ runner.os }}-spm-${{ hashFiles('backend/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+      
+      - name: Build debug
+        run: swift build
+      
+      - name: Build release
+        run: swift build -c release
+      
+      - name: Check for warnings
+        run: swift build --build-tests 2>&1 | tee build.log && ! grep -i "warning:" build.log
