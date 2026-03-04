@@ -4,6 +4,11 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="MiniDock"
 APP_BUNDLE="$PROJECT_DIR/$APP_NAME.app"
+VERSION=$(cat "$PROJECT_DIR/VERSION" 2>/dev/null || echo "0.1.0")
+# Strip leading 'v' if present (e.g. v0.9.1-beta → 0.9.1-beta)
+VERSION="${VERSION#v}"
+# Build number: use numeric-only part for CFBundleVersion (e.g. 0.9.1-beta → 091)
+BUILD_NUMBER=$(echo "$VERSION" | tr -d '.' | sed 's/[^0-9].*$//')
 
 echo "📦 Building backend (Swift release)..."
 cd "$PROJECT_DIR/backend"
@@ -25,10 +30,10 @@ cp "$PROJECT_DIR/macos/Info.plist" "$APP_BUNDLE/Contents/Info.plist.tmp" || {
 }
 
 if ! sed -e 's/$(EXECUTABLE_NAME)/MiniDock/g' \
-    -e 's/$(PRODUCT_BUNDLE_IDENTIFIER)/cc.ironlab.minidock/g' \
-    -e 's/$(PRODUCT_NAME)/MiniDock/g' \
-    -e 's/$(MARKETING_VERSION)/0.1.0/g' \
-    -e 's/$(CURRENT_PROJECT_VERSION)/1/g' \
+    -e "s/\$(PRODUCT_BUNDLE_IDENTIFIER)/cc.ironlab.minidock/g" \
+    -e "s/\$(PRODUCT_NAME)/MiniDock/g" \
+    -e "s/\$(MARKETING_VERSION)/$VERSION/g" \
+    -e "s/\$(CURRENT_PROJECT_VERSION)/$BUILD_NUMBER/g" \
     "$APP_BUNDLE/Contents/Info.plist.tmp" > "$APP_BUNDLE/Contents/Info.plist"; then
     echo "   ❌ Failed to process Info.plist"
     rm -f "$APP_BUNDLE/Contents/Info.plist.tmp"

@@ -105,6 +105,64 @@ swift package resolve        # Resolve dependencies
 
 **Note**: No test framework is currently configured. Do not assume Jest, Vitest, or XCTest exist.
 
+### ⚠️ 脚本职责边界（必读）
+
+MiniDock 有两套完全不同目的的脚本，绝对不能混用：
+
+| 脚本 | 用途 | 签名方式 | 可公开分发？ |
+| ---- | ---- | -------- | ----------- |
+| `./dev-app.sh` | **本地开发测试** | Ad-hoc 或 Apple Development | ❌ 否 |
+| `./release.sh` | **正式公开发布** | Developer ID + Notarize + Staple | ✅ 是 |
+
+- **AI 代理和开发者**：功能迭代时只用 `./dev-app.sh`，永远不要用 `./release.sh` 来测试功能。
+- **发布时**：只用 `./release.sh`，输出 `dist/MiniDock-{VERSION}.dmg`，这才是可安全分发给用户的文件。
+
+### Release / 发布流程
+
+**发布条件**：代码合并到 main 且版本号已更新到 `VERSION` 文件。
+
+#### 一次性凭据配置
+
+```bash
+# 1. 复制模板
+cp scripts/notarize.env.example .notarize.env
+
+# 2. 填入 App Store Connect API Key 信息（见下文说明）
+# 打开 https://appstoreconnect.apple.com/access/integrations/api
+# 按页面说明创建 API Key（Developer 角色），填写到 .notarize.env：
+#   ASC_KEY_ID=XXXXXXXXXX            (10字符 Key ID)
+#   ASC_ISSUER_ID=xxx-xxx-xxx        (页面顶部 Issuer ID)
+#   ASC_KEY_PATH=/path/to/AuthKey_XXXXXXXXXX.p8
+```
+
+#### 构建并发布
+
+```bash
+# 完整发布（签名 → DMG → Apple公证 → Staple），约需5-8分钟
+./release.sh
+
+# 仅打包测试（跳过公证，适合验证DMG结构）
+./release.sh --skip-notarize
+
+# 输出文件
+ls dist/MiniDock-*.dmg    # 这是可公开分发的 DMG
+```
+
+#### 发布后步骤
+
+```bash
+# 1. 测试 DMG（务必在干净 Mac 或 VM 上验证 Gatekeeper 不报错）
+# 2. 上传到官网 https://minidock.net/releases/
+# 3. 创建 GitHub Release 并附上 DMG
+# 4. 更新 appcast.xml 触发 Sparkle 自动更新推送
+```
+
+#### 凭据说明（Developer ID + Notarization）
+
+- **Developer ID Application 证书**：本机 Keychain 已有 `Jacks Gong (SE3B3RM5Y4)`，无需额外配置。
+- **App Store Connect API Key**：notarytool 使用，凭据存放在 `.notarize.env`（gitignored，不可提交）。
+- **Team ID**：`SE3B3RM5Y4`（已硬编码在 `release.sh` 中）。
+
 ## Code Style Guidelines
 
 ### TypeScript/React (Frontend)
