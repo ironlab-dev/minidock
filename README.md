@@ -219,6 +219,23 @@ MiniDock is a **native macOS application** that turns your Mac mini into a compr
 
 ### Installation
 
+#### Option 1: Homebrew (Recommended)
+
+```bash
+brew install --cask ironlab-dev/minidock/minidock
+```
+
+#### Option 2: Direct Download
+
+Download the latest DMG from [GitHub Releases](https://github.com/ironlab-dev/minidock/releases/latest).
+
+1. Open the DMG file
+2. Drag MiniDock to Applications
+3. Launch from menu bar
+
+#### Option 3: Build from Source
+
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/ironlab-dev/minidock.git
