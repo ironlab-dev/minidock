@@ -10,7 +10,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor.git", from: "4.106.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.12.0"),
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.8.0"),
-        .package(url: "https://github.com/vapor/jwt.git", from: "4.2.0"),
+        .package(url: "https://github.com/vapor/jwt.git", from: "5.1.2"),
     ],
     targets: [
         .executableTarget(
