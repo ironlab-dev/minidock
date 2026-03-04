@@ -86,3 +86,17 @@ credentials/
 .notarize.env
 dist/*.dmg
 dist/notarize.log
+
+# Sparkle Framework (binary, not source)
+tools/Sparkle-2.6.4.tar.xz
+tools/Sparkle.framework/
+tools/Sparkle Test App.app/
+tools/sparkle.app/
+tools/Symbols/
+
+# Keep Sparkle tools (needed for signing)
+!tools/bin/
+!tools/CHANGELOG
+!tools/INSTALL
+!tools/LICENSE
+!tools/SampleAppcast.xml
