@@ -83,3 +83,6 @@ AGENTS.md
 # Sensitive directories (defensive — exclude by convention)
 secrets/
 credentials/
+.notarize.env
+dist/*.dmg
+dist/notarize.log
