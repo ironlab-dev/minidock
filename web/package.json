@@ -52,7 +52,7 @@
     "babel-loader": "^10.0.0",
     "esbuild": "^0.27.2",
     "eslint": "^8",
-    "eslint-config-next": "14.2.35",
+    "eslint-config-next": "16.1.6",
     "playwright": "^1.49.0",
     "postcss": "^8",
     "rollup": "^4.54.0",
