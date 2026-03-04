@@ -53,10 +53,14 @@ MiniDock.app/
 # Playwright MCP
 .playwright-mcp/
 
-# Screenshots (temporary captures)
+# Screenshots (temporary captures - exclude root only)
 /*.png
 /*.jpeg
 /*.jpg
+# Allow screenshots in screenshots/ directory
+!screenshots/*.png
+!screenshots/*.jpeg
+!screenshots/*.jpg
 
 # SSL certificates (generated locally)
 certs/*.crt
