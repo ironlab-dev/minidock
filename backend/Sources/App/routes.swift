@@ -8,35 +8,46 @@ func routes(_ app: Application) throws {
     app.get { req async in
         "MiniDock API is running"
     }
-    
+
     app.get("health") { req async in
         ["status": "ok"]
     }
 
     app.webSocket("ws") { req, ws in
-        // Prefer cookie-based auth: token is not exposed in URL (and therefore not in server logs).
-        // Fall back to query parameter for backward compatibility (legacy clients).
+        req.logger.info("[WebSocket] Connection attempt")
+
         let jwtToken: String?
         if let cookieToken = req.cookies["minidock_session"]?.string {
+            req.logger.info("[WebSocket] Using cookie auth")
             jwtToken = cookieToken
+        } else if let queryToken = req.query[String.self, at: "token"] {
+            req.logger.info("[WebSocket] Using query param auth")
+            jwtToken = queryToken
         } else {
-            jwtToken = req.query[String.self, at: "token"]
+            req.logger.warning("[WebSocket] No auth token found, closing connection")
+            jwtToken = nil
         }
+
         guard let token = jwtToken else {
             try? await ws.close(code: .policyViolation)
             return
         }
+
         do {
-            _ = try req.jwt.verify(token, as: UserPayload.self)
+            let payload = try req.jwt.verify(token, as: UserPayload.self)
+            req.logger.info("[WebSocket] Auth successful for user: \(payload.username)")
         } catch {
+            req.logger.warning("[WebSocket] Auth failed: \(error)")
             try? await ws.close(code: .policyViolation)
             return
         }
+
+        req.logger.info("[WebSocket] Client connected, adding to manager")
         req.application.webSocketManager.addClient(ws, app: req.application)
     }
 
     // --- Controller Registrations ---
-    
+
     // Existing controllers
     try app.register(collection: LicenseController())
     try app.register(collection: AuthController())
@@ -44,7 +55,7 @@ func routes(_ app: Application) throws {
     try app.register(collection: BootConfigController())
     try app.register(collection: DiskController())
     try app.register(collection: RaidController())
-    
+
     // New controllers (split from monolithic routes)
     try app.register(collection: ServiceController())
     try app.register(collection: DockerController())
@@ -80,7 +91,7 @@ func routes(_ app: Application) throws {
         let eventLoop = ws.eventLoop
         let app = req.application
         let existingId = req.query[String.self, at: "sessionId"].flatMap { UUID(uuidString: $0) }
-        
+
         guard let terminalService = app.serviceManager.getService(id: "terminal-service") as? TerminalService else {
             Task { try? await ws.close() }
             return
@@ -91,7 +102,7 @@ func routes(_ app: Application) throws {
             var id: UUID?
         }
         let box = SessionBox()
-        
+
         // 如果有 existingId，立即设置，避免时序问题
         if let existingId = existingId {
             box.id = existingId
@@ -146,7 +157,7 @@ func routes(_ app: Application) throws {
                 }
             }
         }
-        
+
         ws.onClose.whenComplete { _ in
             Task {
                 guard let sessionId = box.id else { return }
@@ -154,12 +165,12 @@ func routes(_ app: Application) throws {
             }
         }
 
-        // Perform async setup in a separate task to avoid blocking the EventLoop 
+        // Perform async setup in a separate task to avoid blocking the EventLoop
         // and to ensure we don't call registration methods after a thread jump.
         Task {
             let sessionId = await terminalService.getOrCreateSession(existingId: existingId)
             await terminalService.attachSession(id: sessionId, ws: ws, eventLoop: eventLoop)
-            
+
             eventLoop.execute {
                 box.id = sessionId
                 ws.send("session_id:\(sessionId.uuidString)")

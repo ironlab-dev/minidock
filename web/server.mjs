@@ -12,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const dev = process.env.NODE_ENV !== 'production';
 const port = parseInt(process.env.PORT || '23000', 10);
-const backendPort = parseInt(process.env.BACKEND_PORT || '24000', 10);
+const backendPort = parseInt(process.env.BACKEND_PORT || '28080', 10);
 const useHttps = process.env.USE_HTTPS === 'true';
 
 // Use localhost for Next.js internal hostname (required for dev mode)
@@ -25,7 +25,7 @@ if (useHttps) {
     const certsDir = path.join(__dirname, '..', 'certs');
     const certPath = path.join(certsDir, 'server.crt');
     const keyPath = path.join(certsDir, 'server.key');
-    
+
     if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
         httpsOptions = {
             key: fs.readFileSync(keyPath),
@@ -58,15 +58,22 @@ app.prepare().then(() => {
 
     server.on('upgrade', (req, socket, head) => {
         const { pathname } = parse(req.url);
-        
+
         // Proxy WebSocket paths: /ws, /system/console/proxy, /terminal/ws/*
         const wsProxyPaths = ['/ws', '/system/console/proxy', '/terminal/ws'];
         const shouldProxy = wsProxyPaths.some(p => pathname === p || pathname?.startsWith(p + '/') || pathname?.startsWith('/terminal/ws'));
-        
+
         if (shouldProxy) {
-            // Proxy WebSocket to backend (preserve the original path)
+            // Proxy WebSocket to backend (preserve the original path and cookies)
             const backendWsUrl = `ws://127.0.0.1:${backendPort}${pathname}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
-            const backendWs = new WebSocket(backendWsUrl);
+
+            // Forward cookies from client to backend for authentication
+            const headers = {};
+            if (req.headers.cookie) {
+                headers['Cookie'] = req.headers.cookie;
+            }
+
+            const backendWs = new WebSocket(backendWsUrl, { headers });
 
             backendWs.on('open', () => {
                 wss.handleUpgrade(req, socket, head, (clientWs) => {
@@ -122,7 +129,7 @@ app.prepare().then(() => {
         if (err) throw err;
         console.log(`> Ready on ${protocol}://localhost:${port}`);
         console.log(`> WebSocket proxy: ${protocol === 'https' ? 'wss' : 'ws'}://*/ws -> ws://127.0.0.1:${backendPort}/ws`);
-        
+
         // Get local IP for LAN access info
         const nets = os.networkInterfaces();
         for (const name of Object.keys(nets)) {

@@ -8,6 +8,7 @@ import { ExternalLink, Search, Download, HardDrive, Cpu, Loader2, CheckCircle2, 
 import Link from 'next/link';
 import { communityVMs, CommunityVM } from '@/lib/communityVMs';
 import { useToast } from "@/hooks/useToast";
+import ImageWithFallback from './ImageWithFallback';
 import { client, getBackendBaseUrl } from '@/api/client';
 import { useTranslation } from "@/hooks/useTranslation";
 import { useVersion } from '@/hooks/useVersion';
@@ -277,8 +278,13 @@ export default function VMCommunity({ onInstall }: VMCommunityProps) {
                         >
                             <div className="flex justify-between items-start mb-4">
                                 <div className="w-12 h-12 bg-white rounded-xl shadow-sm p-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={vm.logo} alt={vm.name} className="w-full h-full object-contain" />
+                                    <ImageWithFallback
+                                        src={vm.logo}
+                                        alt={vm.name}
+                                        className="w-full h-full object-contain"
+                                        fallbackText={vm.name}
+                                        fallbackClassName="w-full h-full flex items-center justify-center text-brand-purple font-bold text-lg"
+                                    />
                                 </div>
                                 <div className="flex gap-1">
                                     {vm.downloadUrl ? (

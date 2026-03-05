@@ -8,6 +8,7 @@ import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { useImageStatus } from '@/hooks/useImageStatus';
 import { useVersion } from '@/hooks/useVersion';
+import ImageWithFallback from './ImageWithFallback';
 import { RefreshCcw, CheckCircle2 } from 'lucide-react';
 
 interface VersionBadgeProps {
@@ -196,7 +197,13 @@ export default function DockerCommunity({ onInstall, initialSelectedAppId }: Doc
 
                         <div className="flex items-start gap-4 mb-4 relative z-10">
                             <div className="w-12 h-12 rounded-2xl bg-white/[0.05] p-2 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform duration-300 shadow-xl">
-                                <img src={app.icon} alt={app.name} className="w-full h-full object-contain filter drop-shadow-md" />
+                                <ImageWithFallback
+                                    src={app.icon}
+                                    alt={app.name}
+                                    className="w-full h-full object-contain filter drop-shadow-md"
+                                    fallbackText={app.name}
+                                    fallbackClassName="w-full h-full flex items-center justify-center text-brand-blue font-bold text-lg"
+                                />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-sm font-bold text-white truncate group-hover:text-brand-blue transition-colors">{app.name}</h3>

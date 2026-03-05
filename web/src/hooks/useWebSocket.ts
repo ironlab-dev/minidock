@@ -102,14 +102,9 @@ function connect() {
         // connectionStartTime = Date.now();
     }
 
-    // Skip connection if the user is not authenticated (no in-memory session token).
-    // AuthContext calls reconnectWebSocket() after login to initiate the first connection.
-    if (!isClientAuthenticated()) {
-        return;
-    }
-
     // Browser automatically sends the httpOnly session cookie with same-origin WebSocket connections.
     // No token in URL needed — keeping tokens out of URLs prevents exposure in server logs.
+    // The backend will validate the cookie and reject unauthorized connections.
     socket = new WebSocket(WS_URL!);
     currentStatus = "connecting";
     notify();
@@ -134,7 +129,7 @@ function connect() {
             console.error('[WebSocket] Unknown data type:', typeof event.data);
             return;
         }
-        
+
         const colonIndex = rawData.indexOf(":");
         if (colonIndex === -1) return;
 

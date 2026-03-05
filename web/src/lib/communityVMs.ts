@@ -22,14 +22,14 @@ export const communityVMs: CommunityVM[] = [
         id: "ubuntu-24.04-server",
         name: "Ubuntu Server 24.04 LTS",
         description: "The latest LTS version of Ubuntu Server. Excellent for general purpose server usage.",
-        logo: "https://assets.ubuntu.com/v1/29985a98-ubuntu-logo32.png",
+        logo: "/icons/vms/ubuntu.png",
         category: "Linux",
         architectures: ["arm64", "amd64"],
         downloadUrl: "https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-arm64.iso", // Dynamically switch based on host arch in component if needed, but for now hardcode arm64 for mac?
-        // Actually we should provide map or logic. For simplicity, let's assume we are running on Apple Silicon (arm64) mostly, 
-        // but we should support x86_64 if user is on Intel. 
+        // Actually we should provide map or logic. For simplicity, let's assume we are running on Apple Silicon (arm64) mostly,
+        // but we should support x86_64 if user is on Intel.
         // Let's make downloadUrl a map or just provide arm64 for now as primary target for this user (macOS).
-        // User is on macOS. Most likely Apple Silicon. 
+        // User is on macOS. Most likely Apple Silicon.
         // Let's provide arm64 link.
         filename: "ubuntu-24.04-live-server-arm64.iso",
         currentVersion: "24.04.1",
@@ -43,7 +43,7 @@ export const communityVMs: CommunityVM[] = [
         id: "debian-12-netinst",
         name: "Debian 12 (Bookworm)",
         description: "The universal operating system. Stable and secure.",
-        logo: "https://www.debian.org/logos/openlogo-nd-100.png",
+        logo: "/icons/vms/debian.png",
         category: "Linux",
         architectures: ["arm64"],
         downloadUrl: "https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/debian-12.5.0-arm64-netinst.iso",
@@ -59,7 +59,7 @@ export const communityVMs: CommunityVM[] = [
         id: "alpine-standard",
         name: "Alpine Linux (Standard)",
         description: "Small. Simple. Secure. Ideal for containers and lightweight VMs.",
-        logo: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/master/svg/alpine-linux.svg",
+        logo: "/icons/vms/alpine-linux.svg",
         category: "Linux",
         architectures: ["arm64"],
         downloadUrl: "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-virt-3.21.0-aarch64.iso",
@@ -73,7 +73,7 @@ export const communityVMs: CommunityVM[] = [
         id: "arch-linux-archboot",
         name: "Arch Linux (Archboot)",
         description: "Lightweight and flexible Linux distribution. Archboot provides a friendly installer for AArch64.",
-        logo: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/master/svg/arch-linux.svg",
+        logo: "/icons/vms/arch-linux.svg",
         category: "Linux",
         architectures: ["arm64"],
         downloadUrl: "https://release.archboot.net/aarch64/latest/iso/archboot-2026.01.10-02.07-6.18.3-1-aarch64-ARCH-aarch64.iso",
@@ -115,7 +115,7 @@ export const communityVMs: CommunityVM[] = [
         id: "tinycore-picore64",
         name: "Tiny Core Linux (piCore64)",
         description: "Extremely small Linux distribution. Runs entirely in RAM.",
-        logo: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/master/png/tux.png",
+        logo: "/icons/vms/tux.png",
         category: "Linux",
         architectures: ["arm64"],
         downloadUrl: "", // Manual download

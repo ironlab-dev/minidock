@@ -6,10 +6,10 @@ public func configure(_ app: Application) async throws {
     // Base directory for database
     let fileManager = FileManager.default
     let dataDir: URL
-    
+
     if app.environment == .production {
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        dataDir = appSupport.appendingPathComponent("cc.ironlab.minidock/database")
+        dataDir = appSupport.appendingPathComponent("MiniDock/database")
     } else {
         dataDir = URL(fileURLWithPath: "Data/database")
     }
@@ -42,7 +42,7 @@ public func configure(_ app: Application) async throws {
     let dbPath = dataDir.appendingPathComponent("minidock.sqlite").path
     app.databases.use(.sqlite(.file(dbPath)), as: .sqlite)
     app.logger.info("Database initialized at: \(dbPath)")
-    
+
     // Migrations
     app.migrations.add(CreateService())
     app.migrations.add(CreateAutomationTask())
@@ -54,18 +54,18 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(AddProgressToInstruction())
     app.migrations.add(AddDatabaseIndexes())
     app.migrations.add(CreateSolutionDeployment())
-    
+
     // Increase max body size for ISO uploads
     app.routes.defaultMaxBodySize = "10GB"
 
     // JWT Configuration
     // Use environment variable or generate a random key (note: random key means invalidation on restart if not persisted)
-    // For this local NAS context, we'll try to use a stable key if provided, or default to a persisted key in settings if possible, 
+    // For this local NAS context, we'll try to use a stable key if provided, or default to a persisted key in settings if possible,
     // but for simplicity here we will use a hardcoded fallback dev key if env is missing, OR better:
-    // Generate a random key stored in memory - this means tokens expire on server restart. 
+    // Generate a random key stored in memory - this means tokens expire on server restart.
     // The user requested "avoid frequent login", so we should ideally persist this key.
     // Let's check if we have a key in SystemSetting, if not generate and save it.
-    
+
     // JWT secret: use env var, or auto-generate and persist to file on first launch
     let jwtSecret: String
     if let envSecret = Environment.get("JWT_SECRET") {
@@ -94,13 +94,13 @@ public func configure(_ app: Application) async throws {
     try routes(app)
     try app.register(collection: AuthController())
     try app.register(collection: AdminController())
-    
+
     // Start background monitoring (non-blocking, in background task)
     // This allows the server to start listening immediately without waiting for monitoring initialization
     Task {
         await app.serviceManager.startMonitoring(app: app)
     }
-    
+
     // Auto-migrate automation tasks from database to file system
     Task {
         if let storage = await app.serviceManager.getService(id: "automation-storage") as? AutomationStorageService {
